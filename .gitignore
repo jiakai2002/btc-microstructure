@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Data files (important for your project)
+data/raw/
+data/processed/
+*.parquet
+*.csv
+*.feather
+*.h5
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Pickle / model artifacts (if you add ML later)
+*.pkl
+*.joblib
+
+# Ignore raw and processed data
+data/raw/
+data/processed/
