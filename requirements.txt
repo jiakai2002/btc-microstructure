@@ -1,0 +1,8 @@
+sortedcontainers
+websockets
+pandas
+pyarrow
+numpy
+matplotlib
+scikit-learn
+requests
