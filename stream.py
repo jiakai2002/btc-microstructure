@@ -40,7 +40,7 @@ async def stream(symbol="btcusdt", n_rows=500):
 
 if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
-    print("Streaming BTCUSDT...")
-    df = asyncio.run(stream("btcusdt", n_rows=5000))
-    df.to_parquet("data/book.parquet")
-    print(f"Saved {len(df)} rows to data/book.parquet")
+    print("Streaming data...")
+    df = asyncio.run(stream("ethusdt", n_rows=1000))
+    df.to_parquet("data/raw/book.parquet")
+    print(f"Saved {len(df)} rows to data/raw/book.parquet")
