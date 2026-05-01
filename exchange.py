@@ -30,6 +30,7 @@ class SimulatedExchange:
         self._next_id = 0
         self.fills: list[Fill] = []
         self.cancelled: list[Order] = []
+        self._cash_flow = 0.0
 
     def place_limit_order(self, side: str, price: float, size: float, timestamp: int) -> int:
         order = Order(id=self._next_id, side=side, price=price, size=size, placed_at=timestamp)
@@ -53,10 +54,10 @@ class SimulatedExchange:
     def check_fills(self, row: dict) -> list[Fill]:
         new_fills = []
         best_bid_price = row["bid_0_price"]
-        best_bid_size  = row["bid_0_size"]
+        best_bid_size = row["bid_0_size"]
         best_ask_price = row["ask_0_price"]
-        best_ask_size  = row["ask_0_size"]
-        timestamp      = row["timestamp"]
+        best_ask_size = row["ask_0_size"]
+        timestamp = row["timestamp"]
 
         for order_id in list(self._orders.keys()):
             order = self._orders[order_id]
@@ -71,14 +72,20 @@ class SimulatedExchange:
 
         return new_fills
 
-    def _execute_fill(self, order: Order, available_size: float, fill_price: float, timestamp: int) -> Optional[Fill]:
-        remaining   = order.size - order.filled_size
+    def _execute_fill(self, order, available_size, fill_price, timestamp) -> Optional[Fill]:
+        remaining = order.size - order.filled_size
         filled_size = min(remaining, available_size)
         if filled_size <= 0:
             return None
 
-        fee  = filled_size * fill_price * self.fee_rate
-        fill = Fill(order_id=order.id, side=order.side, price=fill_price, size=filled_size, fee=fee, timestamp=timestamp)
+        fee = filled_size * fill_price * self.fee_rate
+        fill = Fill(order_id=order.id, side=order.side, price=fill_price,
+                    size=filled_size, fee=fee, timestamp=timestamp)
+
+        if order.side == "sell":
+            self._cash_flow += filled_size * fill_price - fee
+        else:
+            self._cash_flow -= filled_size * fill_price + fee
 
         order.filled_size += filled_size
         self.fills.append(fill)
@@ -100,13 +107,7 @@ class SimulatedExchange:
         return sum(f.fee for f in self.fills)
 
     def realized_pnl(self, current_inventory: float, current_mid: float) -> float:
-        cash_flow = 0.0
-        for fill in self.fills:
-            if fill.side == "sell":
-                cash_flow += fill.size * fill.price - fill.fee
-            else:
-                cash_flow -= fill.size * fill.price + fill.fee
-        return cash_flow + current_inventory * current_mid
+        return self._cash_flow + current_inventory * current_mid
 
     def summary(self) -> dict:
         return {
