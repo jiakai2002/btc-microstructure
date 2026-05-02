@@ -2,6 +2,7 @@
 
 Inspired by the Avellaneda-Stoikov (2008) model. Supports live trading and backtesting on BTC/USDT perpetual futures from Binance.
 
+<img width="580" height="551" alt="Screenshot 2026-05-03 at 2 53 44 AM" src="https://github.com/user-attachments/assets/c382b2ca-2fc3-4125-b591-199ddf4ddc25" />
 ---
 
 ## Strategy
