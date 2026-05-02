@@ -36,7 +36,7 @@ class ASConfig:
     min_spread: float = 0.50        # minimum half-spread in USD (floor)
 
     # Exchange
-    fee_bps: float = 2.0            # taker fee in basis points
+    fee_bps: float = 0.2            # taker fee in basis points
     tick_size: float = 0.10         # BTC/USDT tick size on Binance Futures
 
     # Kappa calibration
@@ -91,6 +91,7 @@ class RollingVolatility:
             return self.last_sigma
 
         dt = (ts_ms - self.prev_ts) / 1000.0
+
         if dt <= 0:
             return self.last_sigma
 
@@ -153,7 +154,7 @@ class KappaCalibrator:
         tick_size: float,
         window: int = 5000,
         n_bins: int = 12,
-        min_samples: int = 80,
+        min_samples: int = 200,
         smooth_alpha: float = 0.15,
         kappa_min: float = 0.05,
         kappa_max: float = 50.0,
@@ -184,13 +185,15 @@ class KappaCalibrator:
         delta_usd = abs(price - self.mid)
         if delta_usd <= 0:
             delta_usd = self.tick_size * 0.5
-
         if is_buyer_maker:
             self.bid_hits.append(delta_usd)
         else:
             self.ask_hits.append(delta_usd)
 
     def fit(self):
+        print(f"[kappa fit] bid_hits={len(self.bid_hits)} ask_hits={len(self.ask_hits)}")
+        print(f"[kappa fit] bid sample: {list(self.bid_hits)[:5]}")
+        print(f"[kappa fit] ask sample: {list(self.ask_hits)[:5]}")
         kb = self._fit_side(self.bid_hits, self.k_bid)
         ka = self._fit_side(self.ask_hits, self.k_ask)
 
@@ -263,18 +266,20 @@ class AvellanedaStoikovQuoter:
         return max(0.0, min(1.0, 1.0 - t))
 
     def reservation_price(self, mid: float, q: float, sigma: float, t: float) -> float:
+        sigma_log = sigma / mid
         tau = self.time_factor(t)
-        return mid - q * self.cfg.gamma * (sigma ** 2) * tau
+        return mid - q * self.cfg.gamma * (sigma_log ** 2) * tau
 
     def optimal_spread(self, mid: float, sigma: float, t: float) -> float:
+        sigma_log = sigma / mid
         tau   = self.time_factor(t)
         gamma = self.cfg.gamma
         kappa = self.cfg.kappa  # in 1/USD
-        term1 = gamma * (sigma ** 2) * tau
+        term1 = gamma * (sigma_log ** 2) * tau
         term2 = (2.0 / gamma) * math.log(1.0 + gamma / kappa)
         # fee floor: 2× one-way fee to break even on a round trip
         fee = (self.cfg.fee_bps / 10_000) * mid
-        half_spread = max((term1 + term2) / 2.0, self.cfg.min_spread, 2.0 * fee)
+        half_spread = max((term1 + term2) / 2.0, self.cfg.min_spread)
         return half_spread
 
     def quotes(self, mid: float, q: float, sigma: float, t: float) -> tuple[Optional[float], Optional[float]]:
@@ -363,7 +368,7 @@ class MarketMaker:
 
         self._calib_log.append({"timestamp": ts, "k_bid": k_bid, "k_ask": k_ask, "kappa": kappa_new})
         if self.cfg.verbose:
-            print(f"[calib] recalib {recalib_idx}  k_bid={k_bid:.3f}  k_ask={k_ask:.3f}  κ: {old:.4f} → {kappa_new:.4f} USD⁻¹")
+            print(f"[calib] recalib {recalib_idx}  k_bid={k_bid:.3f}  k_ask={k_ask:.3f}  κ: {old:.4f} → {kappa_new:.4f}")
 
     def _process_fills(self, fills) -> None:
         """
@@ -422,14 +427,20 @@ class MarketMaker:
         sigma = self.vol_est.update(mid, ts)
         if not self.vol_est.ready:
             return
-        
-        # 3. initial κ calibration as soon as enough trades accumulate
-        if not self._initial_calib_done and self.kappa_calib.ready:
-            k_bid, k_ask = self.kappa_calib.fit()
-            self.cfg.kappa = float(np.clip(0.5 * (k_bid + k_ask), self.cfg.kappa_min, self.cfg.kappa_max))
-            self._initial_calib_done = True
-            if self.cfg.verbose:
-                print(f"[calib] initial fit  κ={self.cfg.kappa:.4f} USD⁻¹")
+
+        # 3. initial kappa calibration
+        if not self._initial_calib_done:
+            if self.kappa_calib.ready:
+                k_bid, k_ask = self.kappa_calib.fit()
+                self.cfg.kappa = float(np.clip(0.5 * (k_bid + k_ask), self.cfg.kappa_min, self.cfg.kappa_max))
+                self._initial_calib_done = True
+                if self.cfg.verbose:
+                    print(f"[calib] initial fit  κ={self.cfg.kappa:.4f}")
+            else:
+                if self.cfg.verbose and self._tick_count % 50 == 0:
+                    b, a = len(self.kappa_calib.bid_hits), len(self.kappa_calib.ask_hits)
+                    print(f"[calib] waiting for trades  bid={b}/{self.kappa_calib.min_samples}  ask={a}/{self.kappa_calib.min_samples}")
+                return
 
         # 4. recalibrate κ periodically
         t, session_idx, recalib_idx = self._current_t(ts)
@@ -456,10 +467,13 @@ class MarketMaker:
                 r = self.quoter.reservation_price(mid, q, sigma, t)
                 half = self.quoter.optimal_spread(mid, sigma, t)
                 pnl  = self.exchange.realized_pnl(self.inventory, mid)
+                tick = self.cfg.tick_size
+                bid_display = round(math.floor(bid_px / tick) * tick, 2) if bid_px else 'N/A'
+                ask_display = round(math.ceil(ask_px / tick) * tick, 2) if ask_px else 'N/A'
                 print(
                     f"[{self._tick_count:>7}]  mid={mid:.2f}  r={r:.2f}  "
-                    f"bid={bid_px or 'N/A'}  ask={ask_px or 'N/A'}  "
-                    f"half=${half:.2f}  σ=${sigma:.4f}  κ={self.cfg.kappa:.3f}USD⁻¹  "
+                    f"bid={bid_display}  ask={ask_display}  "
+                    f"half=${half:.2f}  σ=${sigma:.4f}  κ={self.cfg.kappa:.3f}  "
                     f"q={self.inventory:+.4f}BTC  pnl=${pnl:+.4f}"
                 )
 
@@ -498,7 +512,7 @@ async def run_live(symbol: str = "btcusdt", cfg: ASConfig = None):
     """
     Runs two concurrent WebSocket streams:
       - @depth@100ms  → order book ticks → quotes
-      - @aggTrade     → real market orders → κ calibration
+      - @trade     → real market orders → κ calibration
     """
     if cfg is None:
         cfg = ASConfig()
@@ -509,7 +523,7 @@ async def run_live(symbol: str = "btcusdt", cfg: ASConfig = None):
     mm = MarketMaker(cfg)
     manager = OrderBookManager(symbol)
 
-    print(f"Live A-S market maker on {symbol.upper()}  γ={cfg.gamma}  κ={cfg.kappa}USD⁻¹")
+    print(f"Live A-S market maker on {symbol.upper()}  γ={cfg.gamma}  κ={cfg.kappa}")
 
     async def depth_loop():
         ws_url = f"wss://fstream.binance.com/ws/{symbol}@depth@100ms"
@@ -532,7 +546,7 @@ async def run_live(symbol: str = "btcusdt", cfg: ASConfig = None):
 
     async def trade_loop():
         # feed trade msg into calibrator
-        ws_url = f"wss://fstream.binance.com/ws/{symbol}@aggTrade"
+        ws_url = f"wss://fstream.binance.com/market/ws/{symbol}@aggTrade"
         async with websockets.connect(ws_url, ping_interval=20, ping_timeout=10) as ws:
             while True:
                 msg = json.loads(await ws.recv())
