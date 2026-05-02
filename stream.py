@@ -70,7 +70,7 @@ async def stream(symbol: str = "btcusdt", n_rows: int = 500, max_retries: int = 
 
 if __name__ == "__main__":
     SYMBOL = "btcusdt"
-    N_ROWS = 1_000_000    # ~3 hours at 100ms
+    N_ROWS = 10_000    # 20 minutes at 100ms
 
     os.makedirs("data/raw", exist_ok=True)
     out_path = f"data/raw/book_{int(time.time())}.parquet"

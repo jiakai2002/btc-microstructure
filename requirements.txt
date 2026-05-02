@@ -1,9 +1,6 @@
-sortedcontainers
-websockets
-pandas
-pyarrow
-numpy
-matplotlib
-scikit-learn
-requests
-pytest
+numpy>=1.26
+pandas>=2.0
+scipy>=1.11
+sortedcontainers>=2.4
+websockets>=12.0
+pyarrow>=14.0        # parquet read/write
