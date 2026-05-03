@@ -4,8 +4,6 @@ Inspired by the Avellaneda-Stoikov (2008) model. Supports live trading and backt
 
 <img width="575" height="562" alt="Screenshot 2026-05-03 at 2 55 19 AM" src="https://github.com/user-attachments/assets/f28b205b-0263-41a6-b26f-cf179de82e93" />
 
----
-
 ## Strategy
 
 We quote a bid and ask around a **reservation price** that adjusts with inventory, with a **spread** that widens with volatility and narrows with liquidity.
@@ -13,8 +11,6 @@ We quote a bid and ask around a **reservation price** that adjusts with inventor
 r = mid − q · γ · σ² · τ
 δ = ½ [ γ · σ² · τ  +  (2/γ) · ln(1 + γ/κ) ]
 ```
-
----
 
 ## Files
 
@@ -28,8 +24,6 @@ r = mid − q · γ · σ² · τ
 | `stream.py` | Streams Binance order book depth to parquet for backtesting |
 | `logger.py` | Console logger |
 
----
-
 ## Live Data Flow
 
 ```
@@ -38,8 +32,6 @@ Binance aggTrade WS  →  TradingIntensityIndicator.on_trade()
 ```
 
 Both streams run as concurrent coroutines — trade events feed the κ estimator independently of the quote loop.
-
----
 
 ## Parameters
 
@@ -62,8 +54,6 @@ Both streams run as concurrent coroutines — trade events feed the κ estimator
 | `kappa_sampling_length` | `30` | Rolling window size for κ estimation |
 | `kappa_min_samples` | `10` | Minimum samples before κ estimation begins |
 
----
-
 ## κ Estimation
 
 Fits `λ(δ) = α · exp(−κ · δ)` to live aggTrade data, where δ is each trade's distance from mid at the time of the trade.
@@ -72,8 +62,6 @@ Fits `λ(δ) = α · exp(−κ · δ)` to live aggTrade data, where δ is each t
 - **Arrival rate normalisation** — volume divided by window duration so κ is window-size invariant
 - **EMA smoothing** — `κ ← (1−α)·κ_prev + α·κ_new` with hard clamp `[kappa_min, kappa_max]`
 - **Fallback** — last valid estimate retained on fit failure
-
----
 
 ## Volatility
 
@@ -85,8 +73,6 @@ EWMA on log returns, output in absolute price units:
 ```
 
 Returns `(sigma, vol_ratio)`. When `vol_ratio > vol_spike_threshold`, quotes are cancelled and κ recalibration is forced immediately.
-
----
 
 ## Run
 
