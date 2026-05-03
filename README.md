@@ -1,43 +1,8 @@
 # market making bot
 
 Inspired by the Avellaneda-Stoikov (2008) model. Supports live trading and backtesting on BTC/USDT from Binance.
-```
-❯ python3 market_maker.py live
-11:54:59 - market_maker - Running A-S market maker  γ=0.1  κ=1.5
-11:55:01 - market_maker - Order book initialised for BTCUSDT
-11:55:01 - market_maker - warming up volatility... 0/20
-11:55:02 - market_maker - warming up volatility... 10/20
-11:55:03 - market_maker - ORDER buy 0.001000 BTC @ 78169.80
-11:55:03 - market_maker - ORDER sell 0.001000 BTC @ 78171.10
-11:55:21 - market_maker -
---------------------------------------
-  mid         = $78170.45
-  bid / ask   = $78169.8 / $78171.1
-  half spread = $0.65
-  sigma       = $0.0782
-  vol ratio   = 1.000
-  tau         = 1.000
-  gamma       = 0.1000
-  kappa       = 1.500
-  size        = 0.001000 BTC
-  inventory   = +0.0000 BTC
-  PnL         = $+0.0000
-  fills       = 0b / 0a
-  fill rate   = 0.0%
---------------------------------------
 
-11:55:25 - market_maker - ORDER buy 0.001000 BTC @ 78169.70
-11:55:25 - market_maker - ORDER sell 0.001000 BTC @ 78171.00
-11:55:25 - market_maker - [vol spike] ratio=12.16 — cancelling quotes
-11:55:25 - market_maker - ORDER buy 0.001000 BTC @ 78167.90
-11:55:25 - market_maker - ORDER sell 0.001000 BTC @ 78169.20
-11:55:25 - market_maker - [vol spike] ratio=2.99 — cancelling quotes
-11:55:25 - market_maker - ORDER buy 0.001000 BTC @ 78163.30
-11:55:25 - market_maker - ORDER sell 0.001000 BTC @ 78164.60
-11:55:31 - market_maker - FILL sell 0.001 BTC @ 78164.60 fee=$0.0156
-11:55:31 - market_maker - ORDER buy 0.001000 BTC @ 78166.40
-11:55:31 - market_maker - ORDER sell 0.001000 BTC @ 78167.50
-```
+<img width="837" height="673" alt="Screenshot 2026-05-03 at 12 47 42 PM" src="https://github.com/user-attachments/assets/e6ba8663-55c5-4217-84a5-9acdac557e9c" />
 
 ## Strategy
 
