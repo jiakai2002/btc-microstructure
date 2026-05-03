@@ -9,7 +9,6 @@ Inspired by the Avellaneda-Stoikov (2008) model. Supports live trading and backt
 ## Strategy
 
 We quote a bid and ask around a **reservation price** that adjusts with inventory, with a **spread** that widens with volatility and narrows with liquidity.
-
 ```
 r = mid − q · γ · σ² · τ
 δ = ½ [ γ · σ² · τ  +  (2/γ) · ln(1 + γ/κ) ]
@@ -34,8 +33,8 @@ r = mid − q · γ · σ² · τ
 ## Live Data Flow
 
 ```
-Binance depth WS @100ms  →  OrderBookManager  →  MarketMaker.on_tick()
-Binance aggTrade WS       →  TradingIntensityIndicator.on_trade()
+Binance depth WS  →  OrderBookManager  →  MarketMaker.on_tick()
+Binance aggTrade WS  →  TradingIntensityIndicator.on_trade()
 ```
 
 Both streams run as concurrent coroutines — trade events feed the κ estimator independently of the quote loop.
@@ -97,12 +96,3 @@ pip install -r requirements.txt
 python market_maker.py backtest   # streams fresh data if parquet not found
 python market_maker.py live       # logs quotes, no real order submission
 ```
-
----
-
-## References
-
-- Avellaneda & Stoikov (2008). *High-frequency trading in a limit order book.* Quantitative Finance 8(3).
-- Cont, Stoikov & Talreja (2010). *A stochastic model for order book dynamics.* Operations Research 58(3).
-- Fushimi, Gonzalez Garcia & Herman (2018). *Optimal High-Frequency Market Making.*
-- Albers et al. (2025). *To Make, or To Take.* arXiv:2502.18625.
