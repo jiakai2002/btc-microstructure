@@ -54,13 +54,13 @@ Both streams run as concurrent coroutines — trade events feed the κ estimator
 | `kappa_sampling_length` | `30` | Rolling window size for κ estimation |
 | `kappa_min_samples` | `10` | Minimum samples before κ estimation begins |
 
-## κ Estimation
-
-<img width="467" height="474" alt="Screenshot 2026-05-03 at 11 37 48 AM" src="https://github.com/user-attachments/assets/be488247-c6ce-4be6-929a-15c960bfe51b" />
-
 ## Volatility
 
 <img width="435" height="338" alt="Screenshot 2026-05-03 at 11 38 29 AM" src="https://github.com/user-attachments/assets/650cbcdf-00bc-4140-b6b7-9c9843d59cc2" />
+
+## κ Estimation
+
+<img width="467" height="474" alt="Screenshot 2026-05-03 at 11 37 48 AM" src="https://github.com/user-attachments/assets/be488247-c6ce-4be6-929a-15c960bfe51b" />
 
 ## Run
 
