@@ -56,9 +56,34 @@ Both streams run as concurrent coroutines — trade events feed the κ estimator
 
 ## Volatility
 
-<img width="435" height="338" alt="Screenshot 2026-05-03 at 11 38 29 AM" src="https://github.com/user-attachments/assets/650cbcdf-00bc-4140-b6b7-9c9843d59cc2" />
+```mermaid
+flowchart TD
+    A[mid price] --> B[log return, clipped ±5%]
+    B --> C[inst_var = r² / dt]
+    C --> D[EWMA var_per_sec]
+    D --> E[sigma = sqrt·horizon·mid]
+    E --> F[A-S spread + reservation price]
+    E --> G{vol_ratio > threshold?}
+    G -- yes --> H[cancel quotes + recalib κ]
+```
 
 ## κ Estimation
+
+```mermaid
+flowchart TD
+    A[aggTrade WS] --> B[on_trade]
+    C[depth WS] --> D[update_mid]
+    D --> E[_mid_history deque]
+    E -.lookup mid at trade time.-> B
+    B --> F[delta = price - mid]
+    F --> G[_current_sample]
+    G --> |every kappa_recalib_ticks| H[flush_sample]
+    H --> I[_samples dict\nrolling 30 buckets]
+    I --> |min_samples reached| J[_fit]
+    J --> K[curve_fit λ=α·exp−κδ]
+    K --> L[clip + EMA blend]
+    L --> M[kappa → A-S spread]
+```
 
 <img width="467" height="474" alt="Screenshot 2026-05-03 at 11 37 48 AM" src="https://github.com/user-attachments/assets/be488247-c6ce-4be6-929a-15c960bfe51b" />
 
